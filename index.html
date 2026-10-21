@@ -1,0 +1,1566 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#f7a9bd">
+  <title>甜心数独 · 中等难度</title>
+  <style>
+    :root {
+      --page: #fff0f5;
+      --page-deep: #ffe5ec;
+      --paper: rgba(255, 252, 253, 0.92);
+      --white: #fffafd;
+      --ink: #654150;
+      --muted: #987384;
+      --rose: #e96f97;
+      --rose-deep: #c94d78;
+      --rose-soft: #ffd8e3;
+      --rose-pale: #fff2f6;
+      --line: #f1cad5;
+      --line-strong: #d993a9;
+      --given: #694b58;
+      --user: #d8497a;
+      --danger: #c93c59;
+      --danger-soft: #ffe4e8;
+      --shadow: 0 24px 70px rgba(151, 75, 102, 0.16);
+      --shadow-soft: 0 12px 30px rgba(151, 75, 102, 0.11);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      min-width: 320px;
+    }
+
+    body {
+      min-height: 100vh;
+      margin: 0;
+      overflow-x: hidden;
+      color: var(--ink);
+      font-family: "Microsoft YaHei", "PingFang SC", "Noto Sans SC", system-ui, sans-serif;
+      background:
+        radial-gradient(circle at 12% 10%, rgba(255, 255, 255, 0.95) 0 8%, transparent 28%),
+        radial-gradient(circle at 88% 18%, rgba(255, 194, 212, 0.58) 0 8%, transparent 30%),
+        radial-gradient(circle at 50% 105%, rgba(255, 208, 224, 0.82), transparent 43%),
+        linear-gradient(145deg, #fff7fa 0%, var(--page) 46%, #ffdce7 100%);
+    }
+
+    body::before,
+    body::after {
+      position: fixed;
+      z-index: 0;
+      width: 300px;
+      height: 300px;
+      content: "";
+      border-radius: 46% 54% 62% 38%;
+      filter: blur(2px);
+      opacity: 0.55;
+      pointer-events: none;
+    }
+
+    body::before {
+      top: -130px;
+      left: -110px;
+      background: rgba(255, 255, 255, 0.72);
+      transform: rotate(22deg);
+    }
+
+    body::after {
+      right: -120px;
+      bottom: -150px;
+      background: rgba(247, 157, 185, 0.28);
+      transform: rotate(-18deg);
+    }
+
+    button {
+      font: inherit;
+    }
+
+    button:focus-visible {
+      outline: 3px solid rgba(201, 77, 120, 0.34);
+      outline-offset: 3px;
+    }
+
+    .page {
+      position: relative;
+      z-index: 1;
+      width: min(1180px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 34px 0 46px;
+    }
+
+    .hero {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 24px;
+      margin-bottom: 22px;
+      padding: 0 6px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .brand-mark {
+      display: grid;
+      grid-template-columns: repeat(2, 16px);
+      grid-template-rows: repeat(2, 16px);
+      gap: 4px;
+      flex: 0 0 auto;
+      padding: 10px;
+      border: 2px solid rgba(201, 77, 120, 0.2);
+      border-radius: 17px;
+      background: rgba(255, 255, 255, 0.68);
+      box-shadow: var(--shadow-soft);
+      transform: rotate(-5deg);
+    }
+
+    .brand-mark i {
+      border-radius: 5px;
+      background: var(--rose);
+    }
+
+    .brand-mark i:nth-child(2),
+    .brand-mark i:nth-child(3) {
+      background: #ffd0dd;
+    }
+
+    .eyebrow {
+      margin: 0 0 4px;
+      color: var(--rose-deep);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.19em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 0;
+      color: #6c4052;
+      font-family: "STKaiti", "KaiTi", "Microsoft YaHei", sans-serif;
+      font-size: clamp(30px, 4.2vw, 48px);
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      line-height: 1.08;
+    }
+
+    .hero-copy {
+      max-width: 410px;
+      margin: 0 0 3px;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.75;
+      text-align: right;
+    }
+
+    .game-shell {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 292px;
+      gap: 22px;
+      align-items: start;
+    }
+
+    .game-card,
+    .side-card {
+      border: 1px solid rgba(221, 147, 169, 0.38);
+      background: var(--paper);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+    }
+
+    .game-card {
+      min-width: 0;
+      padding: clamp(15px, 2.5vw, 26px);
+      border-radius: 28px;
+    }
+
+    .game-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      margin-bottom: 17px;
+    }
+
+    .difficulty {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      min-width: 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .difficulty-badge {
+      flex: 0 0 auto;
+      padding: 7px 13px;
+      border-radius: 999px;
+      color: var(--rose-deep);
+      font-size: 12px;
+      font-weight: 800;
+      background: var(--rose-soft);
+    }
+
+    .toolbar-button {
+      flex: 0 0 auto;
+      padding: 9px 15px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: var(--rose-deep);
+      font-size: 13px;
+      font-weight: 700;
+      background: var(--white);
+      cursor: pointer;
+      transition: transform 160ms ease, border-color 160ms ease, background 160ms ease;
+    }
+
+    .toolbar-button:hover {
+      border-color: var(--rose);
+      background: var(--rose-pale);
+      transform: translateY(-1px);
+    }
+
+    .board-wrap {
+      position: relative;
+      width: min(100%, 596px);
+      margin: 0 auto;
+    }
+
+    .sudoku-board {
+      display: grid;
+      grid-template-columns: repeat(9, minmax(0, 1fr));
+      width: 100%;
+      aspect-ratio: 1;
+      overflow: hidden;
+      border: 3px solid var(--line-strong);
+      border-radius: 19px;
+      background: var(--white);
+      box-shadow: 0 14px 28px rgba(138, 65, 90, 0.12);
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    .cell {
+      position: relative;
+      display: grid;
+      min-width: 0;
+      min-height: 0;
+      place-items: center;
+      padding: 0;
+      border: 0;
+      border-right: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+      color: var(--user);
+      font-size: clamp(18px, 3.2vw, 30px);
+      font-weight: 700;
+      line-height: 1;
+      background: transparent;
+      cursor: pointer;
+      transition: background-color 110ms ease, color 110ms ease;
+    }
+
+    .cell:nth-child(9n) {
+      border-right: 0;
+    }
+
+    .cell:nth-last-child(-n + 9) {
+      border-bottom: 0;
+    }
+
+    .cell.box-right {
+      border-right: 2px solid var(--line-strong);
+    }
+
+    .cell.box-bottom {
+      border-bottom: 2px solid var(--line-strong);
+    }
+
+    .cell.given {
+      color: var(--given);
+      font-weight: 800;
+    }
+
+    .cell.peer {
+      background: #fff6f9;
+    }
+
+    .cell.same-number {
+      background: #ffe4ed;
+    }
+
+    .cell.selected {
+      z-index: 1;
+      color: var(--rose-deep);
+      background: #ffd3e1;
+      box-shadow: inset 0 0 0 2px rgba(201, 77, 120, 0.38);
+    }
+
+    .cell.error {
+      z-index: 2;
+      color: var(--danger);
+      background: var(--danger-soft);
+      box-shadow: inset 0 0 0 2px rgba(201, 60, 89, 0.5);
+      animation: cell-shake 320ms ease;
+    }
+
+    .cell.just-correct {
+      animation: correct-pop 360ms ease;
+    }
+
+    .number-pad {
+      display: grid;
+      grid-template-columns: repeat(9, minmax(0, 1fr));
+      gap: 8px;
+      width: min(100%, 596px);
+      margin: 17px auto 0;
+    }
+
+    .number-key {
+      display: grid;
+      aspect-ratio: 1;
+      min-width: 0;
+      place-items: center;
+      padding: 0;
+      border: 1px solid #f0c7d2;
+      border-radius: 12px;
+      color: var(--rose-deep);
+      font-size: clamp(17px, 2.5vw, 23px);
+      font-weight: 800;
+      background: linear-gradient(180deg, #fffafd, #fff0f5);
+      box-shadow: 0 5px 0 #f0c4d1;
+      cursor: pointer;
+      transition: transform 100ms ease, box-shadow 100ms ease, background 100ms ease;
+    }
+
+    .number-key:hover {
+      background: #ffe7ef;
+      transform: translateY(-1px);
+    }
+
+    .number-key:active {
+      box-shadow: 0 2px 0 #eab4c4;
+      transform: translateY(3px);
+    }
+
+    .number-key:disabled {
+      opacity: 0.48;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: 0 3px 0 #f0c4d1;
+    }
+
+    .keyboard-hint {
+      margin: 14px 0 0;
+      color: #ae8796;
+      font-size: 12px;
+      text-align: center;
+    }
+
+    kbd {
+      display: inline-block;
+      padding: 2px 6px;
+      border: 1px solid var(--line);
+      border-bottom-width: 2px;
+      border-radius: 5px;
+      color: var(--muted);
+      font-family: inherit;
+      font-size: 11px;
+      background: #fff;
+    }
+
+    .side-card {
+      position: sticky;
+      top: 20px;
+      overflow: hidden;
+      border-radius: 28px;
+    }
+
+    .side-card::before {
+      display: block;
+      height: 7px;
+      content: "";
+      background: linear-gradient(90deg, #f29bb5, #ffd0dd 55%, #f7b4c6);
+    }
+
+    .side-inner {
+      padding: 22px;
+    }
+
+    .side-heading {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 17px;
+    }
+
+    .side-heading h2 {
+      margin: 0;
+      color: #75495b;
+      font-size: 18px;
+      letter-spacing: 0.03em;
+    }
+
+    .status-pill {
+      padding: 5px 9px;
+      border-radius: 999px;
+      color: #8b6473;
+      font-size: 11px;
+      font-weight: 700;
+      background: #fff0f5;
+    }
+
+    .life-panel {
+      padding: 17px;
+      border: 1px solid #f2d3dc;
+      border-radius: 19px;
+      background:
+        radial-gradient(circle at 90% 20%, rgba(255, 209, 222, 0.62), transparent 34%),
+        #fff7fa;
+    }
+
+    .life-topline {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .life-label {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .life-number {
+      display: flex;
+      align-items: baseline;
+      gap: 4px;
+      color: var(--rose-deep);
+    }
+
+    .life-number strong {
+      font-size: 44px;
+      font-weight: 800;
+      line-height: 0.92;
+      letter-spacing: -0.05em;
+    }
+
+    .life-number span {
+      color: #ae7d8d;
+      font-size: 12px;
+    }
+
+    .life-dots {
+      display: flex;
+      gap: 7px;
+      margin-top: 14px;
+    }
+
+    .life-dot {
+      position: relative;
+      flex: 1;
+      height: 8px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: #f1d4dc;
+      transition: background 220ms ease, transform 220ms ease;
+    }
+
+    .life-dot.active {
+      background: linear-gradient(90deg, #e66f96, #f39eb5);
+    }
+
+    .life-dot.lost {
+      background: #eadde2;
+      transform: scaleY(0.65);
+    }
+
+    .mistake-caption {
+      margin: 11px 0 0;
+      color: #a87f8f;
+      font-size: 11px;
+    }
+
+    .stat-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .stat {
+      padding: 12px 13px;
+      border: 1px solid #f0d6de;
+      border-radius: 15px;
+      background: rgba(255, 255, 255, 0.72);
+    }
+
+    .stat-label {
+      display: block;
+      margin-bottom: 4px;
+      color: #a37c8b;
+      font-size: 10px;
+    }
+
+    .stat-value {
+      color: #714858;
+      font-size: 16px;
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .critter-card {
+      position: relative;
+      min-height: 246px;
+      margin-top: 17px;
+      overflow: hidden;
+      border: 1px solid #f0ced8;
+      border-radius: 20px;
+      background:
+        radial-gradient(circle at 18% 18%, #fff 0 4%, transparent 25%),
+        radial-gradient(circle at 84% 24%, rgba(255, 202, 218, 0.7) 0 5%, transparent 28%),
+        linear-gradient(155deg, #fff9fb, #ffeaf0);
+    }
+
+    .critter-card::after {
+      position: absolute;
+      right: 15px;
+      bottom: 10px;
+      content: "♡";
+      color: rgba(201, 77, 120, 0.23);
+      font-size: 31px;
+      transform: rotate(12deg);
+    }
+
+    .critter-stage {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 12px 15px 16px;
+      text-align: center;
+    }
+
+    .critter-art {
+      width: 188px;
+      height: 145px;
+    }
+
+    .critter-art svg {
+      display: block;
+      width: 100%;
+      height: 100%;
+      overflow: visible;
+    }
+
+    .critter-message {
+      min-height: 40px;
+      margin: 2px 0 0;
+      color: #875d6e;
+      font-size: 12px;
+      font-weight: 700;
+      line-height: 1.55;
+    }
+
+    .side-tip {
+      display: flex;
+      gap: 9px;
+      margin-top: 15px;
+      padding: 12px 13px;
+      border-radius: 14px;
+      color: #957180;
+      font-size: 11px;
+      line-height: 1.6;
+      background: #fff4f7;
+    }
+
+    .tip-icon {
+      flex: 0 0 auto;
+      color: var(--rose-deep);
+      font-size: 15px;
+    }
+
+    .side-restart {
+      width: 100%;
+      margin-top: 15px;
+      padding: 12px 16px;
+      border: 0;
+      border-radius: 13px;
+      color: #fff;
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      background: linear-gradient(135deg, #e77698, #cf527c);
+      box-shadow: 0 8px 18px rgba(201, 77, 120, 0.22);
+      cursor: pointer;
+      transition: transform 160ms ease, box-shadow 160ms ease;
+    }
+
+    .side-restart:hover {
+      box-shadow: 0 11px 23px rgba(201, 77, 120, 0.27);
+      transform: translateY(-1px);
+    }
+
+    .critter-toast {
+      position: fixed;
+      z-index: 30;
+      top: 50%;
+      left: 50%;
+      display: flex;
+      min-width: min(340px, calc(100vw - 36px));
+      align-items: center;
+      gap: 2px;
+      padding: 10px 18px 10px 8px;
+      border: 1px solid rgba(223, 146, 170, 0.58);
+      border-radius: 22px;
+      background: rgba(255, 250, 252, 0.97);
+      box-shadow: 0 24px 64px rgba(112, 53, 73, 0.24);
+      opacity: 0;
+      pointer-events: none;
+      transform: translate(-50%, -42%) scale(0.82) rotate(-2deg);
+      transition: opacity 180ms ease, transform 240ms cubic-bezier(0.2, 1.25, 0.4, 1);
+    }
+
+    .critter-toast.show {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1) rotate(0);
+    }
+
+    .toast-art {
+      flex: 0 0 auto;
+      width: 112px;
+      height: 95px;
+    }
+
+    .toast-art svg {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    .toast-copy {
+      min-width: 0;
+      padding-right: 3px;
+      text-align: left;
+    }
+
+    .toast-kicker {
+      margin: 0 0 2px;
+      color: var(--rose-deep);
+      font-size: 10px;
+      font-weight: 900;
+      letter-spacing: 0.13em;
+    }
+
+    .toast-copy strong {
+      display: block;
+      color: #694354;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .toast-copy small {
+      display: block;
+      margin-top: 4px;
+      color: #a17a8a;
+      font-size: 11px;
+    }
+
+    .result-overlay {
+      position: absolute;
+      z-index: 20;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      padding: 20px;
+      border-radius: 19px;
+      background: rgba(255, 244, 248, 0.78);
+      backdrop-filter: blur(9px);
+      -webkit-backdrop-filter: blur(9px);
+    }
+
+    .result-overlay[hidden] {
+      display: none;
+    }
+
+    .result-card {
+      width: min(360px, 100%);
+      padding: 14px 22px 24px;
+      border: 1px solid #e9b8c7;
+      border-radius: 24px;
+      background: #fffafd;
+      box-shadow: 0 24px 58px rgba(121, 57, 79, 0.22);
+      text-align: center;
+      animation: result-in 340ms cubic-bezier(0.2, 1.25, 0.4, 1);
+    }
+
+    .result-art {
+      width: 178px;
+      height: 138px;
+      margin: -2px auto -3px;
+    }
+
+    .result-art svg {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    .result-card h2 {
+      margin: 0 0 6px;
+      color: #6c4053;
+      font-size: 24px;
+    }
+
+    .result-card p {
+      margin: 0 auto 17px;
+      max-width: 270px;
+      color: #987585;
+      font-size: 12px;
+      line-height: 1.65;
+    }
+
+    .result-button {
+      padding: 11px 22px;
+      border: 0;
+      border-radius: 999px;
+      color: #fff;
+      font-size: 13px;
+      font-weight: 800;
+      background: linear-gradient(135deg, #e67597, #cc4b77);
+      box-shadow: 0 8px 20px rgba(201, 77, 120, 0.24);
+      cursor: pointer;
+    }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    @keyframes cell-shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-3px); }
+      50% { transform: translateX(3px); }
+      75% { transform: translateX(-2px); }
+    }
+
+    @keyframes correct-pop {
+      0% { transform: scale(0.72); }
+      55% { transform: scale(1.13); }
+      100% { transform: scale(1); }
+    }
+
+    @keyframes result-in {
+      from { opacity: 0; transform: translateY(10px) scale(0.94); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    @media (max-width: 860px) {
+      .page {
+        width: min(680px, calc(100% - 24px));
+        padding-top: 24px;
+      }
+
+      .hero {
+        align-items: start;
+        flex-direction: column;
+        gap: 11px;
+      }
+
+      .hero-copy {
+        max-width: 100%;
+        text-align: left;
+      }
+
+      .game-shell {
+        grid-template-columns: minmax(0, 1fr);
+      }
+
+      .side-card {
+        position: static;
+        display: block;
+      }
+
+      .side-inner {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(220px, 0.72fr);
+        column-gap: 20px;
+        align-items: start;
+      }
+
+      .side-heading,
+      .life-panel,
+      .stat-row {
+        grid-column: 1;
+      }
+
+      .critter-card {
+        grid-row: 1 / span 3;
+        grid-column: 2;
+        height: 100%;
+        min-height: 270px;
+        margin: 0;
+      }
+
+      .side-tip,
+      .side-restart {
+        display: none;
+      }
+    }
+
+    @media (max-width: 620px) {
+      .page {
+        width: min(500px, calc(100% - 16px));
+        padding-top: 16px;
+      }
+
+      .brand {
+        gap: 11px;
+      }
+
+      .brand-mark {
+        grid-template-columns: repeat(2, 12px);
+        grid-template-rows: repeat(2, 12px);
+        gap: 3px;
+        padding: 8px;
+        border-radius: 14px;
+      }
+
+      h1 {
+        font-size: 30px;
+      }
+
+      .hero-copy {
+        font-size: 12px;
+      }
+
+      .game-card {
+        padding: 12px;
+        border-radius: 21px;
+      }
+
+      .game-toolbar {
+        padding: 1px 2px 0;
+      }
+
+      .difficulty > span:last-child {
+        display: none;
+      }
+
+      .sudoku-board {
+        border-width: 2px;
+        border-radius: 13px;
+      }
+
+      .cell {
+        font-size: clamp(16px, 7vw, 24px);
+      }
+
+      .number-pad {
+        gap: 5px;
+        margin-top: 12px;
+      }
+
+      .number-key {
+        border-radius: 9px;
+        box-shadow: 0 4px 0 #f0c4d1;
+      }
+
+      .keyboard-hint {
+        display: none;
+      }
+
+      .side-card {
+        display: block;
+      }
+
+      .side-card::before {
+        height: 5px;
+      }
+
+      .side-inner {
+        display: block;
+        padding: 17px;
+      }
+
+      .life-panel {
+        padding: 14px 15px;
+      }
+
+      .life-number strong {
+        font-size: 36px;
+      }
+
+      .critter-card {
+        min-height: 0;
+        margin: 12px 0 0;
+      }
+
+      .critter-stage {
+        flex-direction: row;
+        gap: 10px;
+        padding: 8px 13px 11px;
+        text-align: left;
+      }
+
+      .critter-art {
+        flex: 0 0 118px;
+        width: 118px;
+        height: 95px;
+      }
+
+      .critter-message {
+        min-height: 0;
+      }
+
+      .critter-toast {
+        top: auto;
+        bottom: 18px;
+        transform: translate(-50%, 18px) scale(0.9);
+      }
+
+      .critter-toast.show {
+        transform: translate(-50%, 0) scale(1);
+      }
+    }
+
+    @media (max-width: 380px) {
+      .game-shell {
+        gap: 12px;
+      }
+
+      .number-pad {
+        gap: 4px;
+      }
+
+      .number-key {
+        font-size: 16px;
+      }
+
+      .stat-row {
+        gap: 7px;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        scroll-behavior: auto !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header class="hero">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+        <div>
+          <p class="eyebrow">Pink Sudoku Club</p>
+          <h1>甜心数独</h1>
+        </div>
+      </div>
+      <p class="hero-copy">安静填好每一格，小猫和小狗会在旁边陪你。只有五次试错机会，慢慢想哦。</p>
+    </header>
+
+    <section class="game-shell" aria-label="甜心数独游戏">
+      <div class="game-card">
+        <div class="game-toolbar">
+          <div class="difficulty">
+            <span class="difficulty-badge">中等难度</span>
+            <span id="clueText">35 个提示数</span>
+          </div>
+          <button class="toolbar-button" id="toolbarRestart" type="button">换一局</button>
+        </div>
+
+        <div class="board-wrap">
+          <div class="sudoku-board" id="board" role="grid" aria-label="9乘9数独棋盘"></div>
+          <div class="result-overlay" id="resultOverlay" hidden>
+            <div class="result-card">
+              <div class="result-art" id="resultArt" aria-hidden="true"></div>
+              <p class="eyebrow" id="resultKicker">ROUND COMPLETE</p>
+              <h2 id="resultTitle">全部填对啦！</h2>
+              <p id="resultCopy">小猫为你鼓掌，今天的数独甜度满分。</p>
+              <button class="result-button" id="playAgain" type="button">再来一局</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="number-pad" id="numberPad" aria-label="数字选择区"></div>
+        <p class="keyboard-hint">键盘输入 <kbd>1</kbd>–<kbd>9</kbd>，方向键切换格子</p>
+      </div>
+
+      <aside class="side-card" aria-label="游戏状态">
+        <div class="side-inner">
+          <div class="side-heading">
+            <h2>本局状态</h2>
+            <span class="status-pill" id="statusPill">进行中</span>
+          </div>
+
+          <div class="life-panel">
+            <div class="life-topline">
+              <div>
+                <div class="life-label">还能填错</div>
+                <div class="life-number"><strong id="remainingCount">5</strong><span>次</span></div>
+              </div>
+            </div>
+            <div class="life-dots" id="lifeDots" aria-hidden="true">
+              <span class="life-dot active"></span>
+              <span class="life-dot active"></span>
+              <span class="life-dot active"></span>
+              <span class="life-dot active"></span>
+              <span class="life-dot active"></span>
+            </div>
+            <p class="mistake-caption" id="mistakeCaption">已经填错 0 次 · 保持专注会更顺利</p>
+          </div>
+
+          <div class="stat-row">
+            <div class="stat">
+              <span class="stat-label">用时</span>
+              <span class="stat-value" id="timer">00:00</span>
+            </div>
+            <div class="stat">
+              <span class="stat-label">完成进度</span>
+              <span class="stat-value" id="progressText">0%</span>
+            </div>
+          </div>
+
+          <div class="critter-card">
+            <div class="critter-stage">
+              <div class="critter-art" id="critterStage" aria-hidden="true"></div>
+              <p class="critter-message" id="critterMessage">选一个空白格，我们开始吧。</p>
+            </div>
+          </div>
+
+          <div class="side-tip">
+            <span class="tip-icon" aria-hidden="true">✦</span>
+            <span>每行、每列、每个 3×3 宫内，1–9 都只能出现一次。</span>
+          </div>
+
+          <button class="side-restart" id="sideRestart" type="button">重新挑战</button>
+        </div>
+      </aside>
+    </section>
+  </main>
+
+  <div class="critter-toast" id="critterToast" role="status" aria-live="assertive">
+    <div class="toast-art" id="toastArt" aria-hidden="true"></div>
+    <div class="toast-copy">
+      <p class="toast-kicker" id="toastKicker">小猫提醒</p>
+      <strong id="toastTitle">这一格再想想吧</strong>
+      <small id="toastDetail">还有 4 次机会</small>
+    </div>
+  </div>
+
+  <p class="sr-only" id="liveRegion" aria-live="polite"></p>
+
+  <script>
+    (() => {
+      "use strict";
+
+      const BASE_PUZZLE = "530070000600195000098000060800060003400803001700020006060000280000419005000080079";
+      const BASE_SOLUTION = "534678912672195348198342567859761423426853791713924856961537284287419635345286179";
+      const EXTRA_CLUE_INDEXES = new Set([2, 11, 42, 58, 78]);
+      const MAX_MISTAKES = 5;
+
+      const CAT_MESSAGES = [
+        ["喵…这一格还不对哦", "别着急，小猫陪你再看看。"],
+        ["小鱼干说：再想一想", "看看同一行和同一列吧。"],
+        ["这一格偷偷躲起来了", "换个思路，也许马上就找到了。"],
+        ["差一点点就对啦", "先把确定的位置填上，慢慢来。"],
+        ["小猫歪了歪脑袋", "这个数字不太匹配哦。"]
+      ];
+
+      const DOG_MESSAGES = [
+        ["汪！这个数字不对哦", "先检查它所在的 3×3 宫吧。"],
+        ["骨头先放一边，再想想", "同一行是不是已经有它了？"],
+        ["小狗发现了一个小错误", "擦掉刚才的想法，再来一次。"],
+        ["还差一步就找对啦", "深呼吸，留意缺少的数字。"],
+        ["汪呜，再谨慎一点", "把候选数字缩小范围试试。"]
+      ];
+
+      const PALETTES = {
+        cat: [
+          { fur: "#f6b7c7", dark: "#d9849d", ear: "#f6a0b6", spot: "#fff0f4", accent: "#d5537c" },
+          { fur: "#f4c6a9", dark: "#cc8b69", ear: "#ecaa91", spot: "#fff3e8", accent: "#d26771" },
+          { fur: "#d8c6e4", dark: "#9e82b7", ear: "#c5a9d9", spot: "#faf4ff", accent: "#a15e93" }
+        ],
+        dog: [
+          { fur: "#f4cda7", dark: "#bd8257", ear: "#c88b62", spot: "#fff4e8", accent: "#d15f78" },
+          { fur: "#f4d7cb", dark: "#b97e6f", ear: "#a86b5a", spot: "#fff8f4", accent: "#c95a76" },
+          { fur: "#e9d7bb", dark: "#a57c5f", ear: "#96705a", spot: "#fffaf0", accent: "#bd6b76" }
+        ]
+      };
+
+      const boardEl = document.getElementById("board");
+      const numberPadEl = document.getElementById("numberPad");
+      const clueTextEl = document.getElementById("clueText");
+      const remainingCountEl = document.getElementById("remainingCount");
+      const mistakeCaptionEl = document.getElementById("mistakeCaption");
+      const lifeDotsEl = document.getElementById("lifeDots");
+      const timerEl = document.getElementById("timer");
+      const progressTextEl = document.getElementById("progressText");
+      const statusPillEl = document.getElementById("statusPill");
+      const critterStageEl = document.getElementById("critterStage");
+      const critterMessageEl = document.getElementById("critterMessage");
+      const critterToastEl = document.getElementById("critterToast");
+      const toastArtEl = document.getElementById("toastArt");
+      const toastKickerEl = document.getElementById("toastKicker");
+      const toastTitleEl = document.getElementById("toastTitle");
+      const toastDetailEl = document.getElementById("toastDetail");
+      const resultOverlayEl = document.getElementById("resultOverlay");
+      const resultArtEl = document.getElementById("resultArt");
+      const resultKickerEl = document.getElementById("resultKicker");
+      const resultTitleEl = document.getElementById("resultTitle");
+      const resultCopyEl = document.getElementById("resultCopy");
+      const liveRegionEl = document.getElementById("liveRegion");
+
+      const state = {
+        puzzle: [],
+        solution: [],
+        grid: [],
+        locked: [],
+        selected: null,
+        mistakes: 0,
+        gameOver: false,
+        inputLocked: false,
+        startTime: 0,
+        elapsedSeconds: 0,
+        timerId: null,
+        wrongCell: null,
+        wrongValue: 0,
+        toastTimer: null,
+        clueCount: 0,
+        lastAnimal: null
+      };
+
+      const cells = [];
+
+      function shuffle(items) {
+        const copy = [...items];
+        for (let i = copy.length - 1; i > 0; i -= 1) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [copy[i], copy[j]] = [copy[j], copy[i]];
+        }
+        return copy;
+      }
+
+      function buildBandOrder() {
+        const order = [];
+        for (const band of shuffle([0, 1, 2])) {
+          for (const localIndex of shuffle([0, 1, 2])) {
+            order.push(band * 3 + localIndex);
+          }
+        }
+        return order;
+      }
+
+      function createRound() {
+        const digitOrder = shuffle([1, 2, 3, 4, 5, 6, 7, 8, 9]);
+        const rowOrder = buildBandOrder();
+        const columnOrder = buildBandOrder();
+        const solution = Array(81).fill(0);
+        const puzzle = Array(81).fill(0);
+        let clueCount = 0;
+
+        for (let row = 0; row < 9; row += 1) {
+          for (let column = 0; column < 9; column += 1) {
+            const oldRow = rowOrder[row];
+            const oldColumn = columnOrder[column];
+            const oldIndex = oldRow * 9 + oldColumn;
+            const newIndex = row * 9 + column;
+            const oldSolutionValue = Number(BASE_SOLUTION[oldIndex]);
+            const newValue = digitOrder[oldSolutionValue - 1];
+            const isClue = BASE_PUZZLE[oldIndex] !== "0" || EXTRA_CLUE_INDEXES.has(oldIndex);
+
+            solution[newIndex] = newValue;
+            if (isClue) {
+              puzzle[newIndex] = newValue;
+              clueCount += 1;
+            }
+          }
+        }
+
+        return { puzzle, solution, clueCount };
+      }
+
+      function createCatSvg(palette = PALETTES.cat[0]) {
+        return `
+          <svg viewBox="0 0 240 190" role="img" aria-label="Q版小猫" style="--fur:${palette.fur};--dark:${palette.dark};--ear:${palette.ear};--spot:${palette.spot};--accent:${palette.accent}">
+            <ellipse cx="120" cy="176" rx="69" ry="9" fill="#c98298" opacity=".18"/>
+            <path d="M65 79 52 29c-1-8 5-11 12-7l39 24" fill="var(--fur)" stroke="var(--dark)" stroke-width="4" stroke-linejoin="round"/>
+            <path d="m62 45 22 14-17 12Z" fill="var(--ear)" opacity=".75"/>
+            <path d="m175 79 13-50c1-8-5-11-12-7l-39 24" fill="var(--fur)" stroke="var(--dark)" stroke-width="4" stroke-linejoin="round"/>
+            <path d="m178 45-22 14 17 12Z" fill="var(--ear)" opacity=".75"/>
+            <ellipse cx="120" cy="106" rx="75" ry="64" fill="var(--fur)" stroke="var(--dark)" stroke-width="4"/>
+            <path d="M98 50q8-14 20-3 12-13 23 4-18-4-43-1Z" fill="var(--spot)" opacity=".8"/>
+            <ellipse cx="91" cy="103" rx="9" ry="12" fill="#493442"/>
+            <ellipse cx="149" cy="103" rx="9" ry="12" fill="#493442"/>
+            <circle cx="94" cy="99" r="3" fill="#fff"/>
+            <circle cx="152" cy="99" r="3" fill="#fff"/>
+            <ellipse cx="76" cy="125" rx="13" ry="7" fill="#f58daa" opacity=".48"/>
+            <ellipse cx="164" cy="125" rx="13" ry="7" fill="#f58daa" opacity=".48"/>
+            <path d="m115 121 5 4 5-4" fill="var(--accent)" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M120 126q0 8-8 9m8-9q0 8 8 9" fill="none" stroke="#7d5364" stroke-width="3" stroke-linecap="round"/>
+            <path d="M45 108 21 99m25 21-27 3m50 0 24 9M195 108l24-9m-25 21 27 3m-50 0-24 9" fill="none" stroke="var(--dark)" stroke-width="3" stroke-linecap="round"/>
+            <path d="M84 163q36 20 72 0" fill="#fff" stroke="var(--dark)" stroke-width="3" stroke-linecap="round"/>
+            <path d="M106 170v13m28-13v13" stroke="var(--dark)" stroke-width="4" stroke-linecap="round"/>
+          </svg>`;
+      }
+
+      function createDogSvg(palette = PALETTES.dog[0]) {
+        return `
+          <svg viewBox="0 0 240 190" role="img" aria-label="Q版小狗" style="--fur:${palette.fur};--dark:${palette.dark};--ear:${palette.ear};--spot:${palette.spot};--accent:${palette.accent}">
+            <ellipse cx="120" cy="176" rx="70" ry="9" fill="#b87174" opacity=".17"/>
+            <path d="M69 62Q39 58 38 92q-1 36 35 31l18-14" fill="var(--ear)" stroke="var(--dark)" stroke-width="4" stroke-linejoin="round"/>
+            <path d="M171 62q30-4 31 30 1 36-35 31l-18-14" fill="var(--ear)" stroke="var(--dark)" stroke-width="4" stroke-linejoin="round"/>
+            <ellipse cx="120" cy="101" rx="73" ry="66" fill="var(--fur)" stroke="var(--dark)" stroke-width="4"/>
+            <path d="M69 65q18-24 40-19 16 4 17 22-22-5-57-3Z" fill="var(--spot)" opacity=".84"/>
+            <path d="M145 86q10-14 22-8 11 7 3 24-7 13-21 9-13-5-4-25Z" fill="var(--dark)" opacity=".28"/>
+            <ellipse cx="90" cy="103" rx="9" ry="12" fill="#493540"/>
+            <ellipse cx="150" cy="103" rx="9" ry="12" fill="#493540"/>
+            <circle cx="93" cy="99" r="3" fill="#fff"/>
+            <circle cx="153" cy="99" r="3" fill="#fff"/>
+            <ellipse cx="74" cy="125" rx="13" ry="7" fill="#ee8499" opacity=".42"/>
+            <ellipse cx="166" cy="125" rx="13" ry="7" fill="#ee8499" opacity=".42"/>
+            <ellipse cx="120" cy="126" rx="33" ry="28" fill="var(--spot)"/>
+            <path d="M108 119q12-10 24 0-3 12-12 13-9-1-12-13Z" fill="#553b45"/>
+            <path d="M120 132v7m0 0q-8 10-17 2m17-2q8 10 17 2" fill="none" stroke="#745360" stroke-width="3" stroke-linecap="round"/>
+            <path d="M109 149q11 18 23 0-1 14-12 16-11-2-11-16Z" fill="#ef829c" stroke="#c45f78" stroke-width="2" stroke-linejoin="round"/>
+            <path d="M83 166q37 18 74 0" fill="#fff" stroke="var(--dark)" stroke-width="3" stroke-linecap="round"/>
+            <path d="M106 170v13m28-13v13" stroke="var(--dark)" stroke-width="4" stroke-linecap="round"/>
+          </svg>`;
+      }
+
+      function createAnimal(type, forcedPaletteIndex = null) {
+        const safeType = type === "dog" ? "dog" : "cat";
+        const options = PALETTES[safeType];
+        const paletteIndex = forcedPaletteIndex === null
+          ? Math.floor(Math.random() * options.length)
+          : forcedPaletteIndex % options.length;
+        return {
+          type: safeType,
+          markup: safeType === "cat"
+            ? createCatSvg(options[paletteIndex])
+            : createDogSvg(options[paletteIndex])
+        };
+      }
+
+      function pickAnimal() {
+        let type = Math.random() < 0.5 ? "cat" : "dog";
+        if (state.lastAnimal === type && Math.random() < 0.65) {
+          type = type === "cat" ? "dog" : "cat";
+        }
+        state.lastAnimal = type;
+        return createAnimal(type);
+      }
+
+      function buildControls() {
+        for (let i = 0; i < 81; i += 1) {
+          const cell = document.createElement("button");
+          cell.type = "button";
+          cell.className = "cell";
+          cell.setAttribute("role", "gridcell");
+          cell.dataset.index = String(i);
+          if (i % 9 === 2 || i % 9 === 5) cell.classList.add("box-right");
+          if (Math.floor(i / 9) === 2 || Math.floor(i / 9) === 5) cell.classList.add("box-bottom");
+          cell.addEventListener("click", () => selectCell(i));
+          boardEl.appendChild(cell);
+          cells.push(cell);
+        }
+
+        for (let value = 1; value <= 9; value += 1) {
+          const key = document.createElement("button");
+          key.type = "button";
+          key.className = "number-key";
+          key.textContent = String(value);
+          key.setAttribute("aria-label", `填入数字 ${value}`);
+          key.addEventListener("click", () => enterValue(value));
+          numberPadEl.appendChild(key);
+        }
+      }
+
+      function selectCell(index) {
+        if (state.gameOver) return;
+        state.selected = index;
+        renderBoard();
+      }
+
+      function formatTime(totalSeconds) {
+        const minutes = Math.floor(totalSeconds / 60).toString().padStart(2, "0");
+        const seconds = (totalSeconds % 60).toString().padStart(2, "0");
+        return `${minutes}:${seconds}`;
+      }
+
+      function updateTimer() {
+        if (state.gameOver) return;
+        state.elapsedSeconds = Math.floor((Date.now() - state.startTime) / 1000);
+        timerEl.textContent = formatTime(state.elapsedSeconds);
+      }
+
+      function updateStats() {
+        const remaining = Math.max(0, MAX_MISTAKES - state.mistakes);
+        const filled = state.locked.filter(Boolean).length;
+        const progress = Math.round((filled / 81) * 100);
+
+        remainingCountEl.textContent = String(remaining);
+        mistakeCaptionEl.textContent = `已经填错 ${state.mistakes} 次 · ${remaining === 0 ? "机会用完了" : "保持专注会更顺利"}`;
+        progressTextEl.textContent = `${progress}%`;
+        statusPillEl.textContent = state.gameOver
+          ? (state.grid.every((value, index) => value === state.solution[index]) ? "已完成" : "已结束")
+          : "进行中";
+
+        [...lifeDotsEl.children].forEach((dot, index) => {
+          const isActive = index < remaining;
+          dot.classList.toggle("active", isActive);
+          dot.classList.toggle("lost", !isActive);
+        });
+
+        [...numberPadEl.children].forEach((button) => {
+          button.disabled = state.gameOver || state.inputLocked;
+        });
+      }
+
+      function renderBoard() {
+        const selectedIndex = state.selected;
+        const selectedValue = selectedIndex !== null ? state.grid[selectedIndex] : 0;
+        const selectedRow = selectedIndex !== null ? Math.floor(selectedIndex / 9) : -1;
+        const selectedColumn = selectedIndex !== null ? selectedIndex % 9 : -1;
+        const selectedBoxRow = selectedRow >= 0 ? Math.floor(selectedRow / 3) : -1;
+        const selectedBoxColumn = selectedColumn >= 0 ? Math.floor(selectedColumn / 3) : -1;
+
+        cells.forEach((cell, index) => {
+          const row = Math.floor(index / 9);
+          const column = index % 9;
+          const value = state.grid[index];
+          const isSelected = selectedIndex === index;
+          const isPeer = selectedIndex !== null && !isSelected && (
+            row === selectedRow ||
+            column === selectedColumn ||
+            (Math.floor(row / 3) === selectedBoxRow && Math.floor(column / 3) === selectedBoxColumn)
+          );
+          const sameNumber = selectedValue > 0 && value === selectedValue && !isSelected;
+
+          cell.textContent = value ? String(value) : "";
+          cell.classList.toggle("given", state.puzzle[index] !== 0);
+          cell.classList.toggle("selected", isSelected);
+          cell.classList.toggle("peer", isPeer);
+          cell.classList.toggle("same-number", sameNumber);
+          cell.classList.toggle("error", state.wrongCell === index);
+          cell.setAttribute("aria-selected", String(isSelected));
+          cell.setAttribute(
+            "aria-label",
+            `第 ${row + 1} 行第 ${column + 1} 列，${value ? `数字 ${value}` : "空白"}${state.puzzle[index] ? "，题目数字" : ""}`
+          );
+        });
+
+        updateStats();
+      }
+
+      function showWrongAnswer(value) {
+        const animal = pickAnimal();
+        const messageList = animal.type === "cat" ? CAT_MESSAGES : DOG_MESSAGES;
+        const [title, detail] = messageList[Math.floor(Math.random() * messageList.length)];
+        const remaining = MAX_MISTAKES - state.mistakes;
+        const kicker = animal.type === "cat" ? "小猫提醒" : "小狗提醒";
+
+        critterStageEl.innerHTML = animal.markup;
+        critterMessageEl.textContent = `${title}。${detail}`;
+        toastArtEl.innerHTML = animal.markup;
+        toastKickerEl.textContent = kicker;
+        toastTitleEl.textContent = title;
+        toastDetailEl.textContent = remaining > 0
+          ? `已填错 ${state.mistakes} 次，还剩 ${remaining} 次机会`
+          : "五次机会已经用完啦";
+
+        clearTimeout(state.toastTimer);
+        critterToastEl.classList.remove("show");
+        void critterToastEl.offsetWidth;
+        critterToastEl.classList.add("show");
+        state.toastTimer = setTimeout(() => critterToastEl.classList.remove("show"), 1900);
+
+        liveRegionEl.textContent = `${kicker}：${title}。${detail}还剩 ${remaining} 次机会。`;
+      }
+
+      function enterValue(value) {
+        if (state.gameOver || state.inputLocked) return;
+
+        if (state.selected === null) {
+          const firstEmpty = state.grid.findIndex((item, index) => item === 0 && !state.locked[index]);
+          if (firstEmpty === -1) return;
+          state.selected = firstEmpty;
+        }
+
+        const index = state.selected;
+        if (state.locked[index]) {
+          liveRegionEl.textContent = "这个格子已经有数字了，请选择空白格。";
+          return;
+        }
+
+        if (value !== state.solution[index]) {
+          state.mistakes += 1;
+          state.wrongCell = index;
+          state.wrongValue = value;
+          state.grid[index] = value;
+          state.inputLocked = true;
+          renderBoard();
+          showWrongAnswer(value);
+
+          if (state.mistakes >= MAX_MISTAKES) {
+            endGame(false);
+            return;
+          }
+
+          setTimeout(() => {
+            if (state.wrongCell === index && state.grid[index] === value) {
+              state.grid[index] = 0;
+            }
+            state.wrongCell = null;
+            state.wrongValue = 0;
+            state.inputLocked = false;
+            renderBoard();
+          }, 720);
+          return;
+        }
+
+        state.grid[index] = value;
+        state.locked[index] = true;
+        state.wrongCell = null;
+        state.wrongValue = 0;
+        renderBoard();
+
+        const cellEl = cells[index];
+        cellEl.classList.add("just-correct");
+        setTimeout(() => cellEl.classList.remove("just-correct"), 380);
+
+        if (state.grid.every((item, gridIndex) => item === state.solution[gridIndex])) {
+          endGame(true);
+        }
+      }
+
+      function endGame(won) {
+        if (state.gameOver) return;
+        state.gameOver = true;
+        state.inputLocked = false;
+        clearInterval(state.timerId);
+        updateTimer();
+
+        const animal = pickAnimal();
+        resultArtEl.innerHTML = animal.markup;
+
+        if (won) {
+          const timeText = formatTime(state.elapsedSeconds);
+          resultKickerEl.textContent = "ROUND COMPLETE";
+          resultTitleEl.textContent = state.mistakes === 0 ? "完美甜心通关！" : "全部填对啦！";
+          resultCopyEl.textContent = state.mistakes === 0
+            ? `用时 ${timeText}，一次都没有填错。小猫已经把小鱼干奖给你了。`
+            : `用时 ${timeText}，填错 ${state.mistakes} 次。稳稳完成，也很棒！`;
+          critterMessageEl.textContent = "全部完成！今天的你闪闪发光。";
+          liveRegionEl.textContent = `恭喜通关，用时 ${timeText}，填错 ${state.mistakes} 次。`;
+        } else {
+          resultKickerEl.textContent = "ROUND PAUSED";
+          resultTitleEl.textContent = "五次机会用完啦";
+          resultCopyEl.textContent = "先和小猫小狗一起复盘，再开一局吧。每次重试都会更熟练。";
+          critterMessageEl.textContent = "别灰心，下一局一定会更顺利。";
+          liveRegionEl.textContent = "五次机会已经用完，本局结束。";
+        }
+
+        critterStageEl.innerHTML = animal.markup;
+        renderBoard();
+        resultOverlayEl.hidden = false;
+        document.getElementById("playAgain").focus();
+      }
+
+      function resetGame() {
+        clearInterval(state.timerId);
+        clearTimeout(state.toastTimer);
+        critterToastEl.classList.remove("show");
+        resultOverlayEl.hidden = true;
+
+        const round = createRound();
+        state.puzzle = round.puzzle;
+        state.solution = round.solution;
+        state.grid = [...round.puzzle];
+        state.locked = round.puzzle.map((value) => value !== 0);
+        state.clueCount = round.clueCount;
+        state.selected = state.grid.findIndex((value) => value === 0);
+        state.mistakes = 0;
+        state.gameOver = false;
+        state.inputLocked = false;
+        state.startTime = Date.now();
+        state.elapsedSeconds = 0;
+        state.wrongCell = null;
+        state.wrongValue = 0;
+
+        clueTextEl.textContent = `${state.clueCount} 个提示数`;
+        timerEl.textContent = "00:00";
+        const starter = createAnimal("cat");
+        critterStageEl.innerHTML = starter.markup;
+        critterMessageEl.textContent = "选一个空白格，我们开始吧。";
+        liveRegionEl.textContent = `新一局数独开始了，共有 ${state.clueCount} 个提示数。`;
+
+        renderBoard();
+        state.timerId = setInterval(updateTimer, 1000);
+      }
+
+      function moveSelection(key) {
+        if (state.gameOver) return;
+        if (state.selected === null) {
+          state.selected = 0;
+        } else {
+          const row = Math.floor(state.selected / 9);
+          const column = state.selected % 9;
+          if (key === "ArrowUp") state.selected = ((row + 8) % 9) * 9 + column;
+          if (key === "ArrowDown") state.selected = ((row + 1) % 9) * 9 + column;
+          if (key === "ArrowLeft") state.selected = row * 9 + (column + 8) % 9;
+          if (key === "ArrowRight") state.selected = row * 9 + (column + 1) % 9;
+        }
+        renderBoard();
+      }
+
+      buildControls();
+
+      numberPadEl.addEventListener("pointerdown", (event) => {
+        if (event.pointerType !== "mouse") event.preventDefault();
+      });
+
+      document.addEventListener("keydown", (event) => {
+        if (/^[1-9]$/.test(event.key)) {
+          event.preventDefault();
+          enterValue(Number(event.key));
+          return;
+        }
+        if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(event.key)) {
+          event.preventDefault();
+          moveSelection(event.key);
+        }
+      });
+
+      document.getElementById("toolbarRestart").addEventListener("click", resetGame);
+      document.getElementById("sideRestart").addEventListener("click", resetGame);
+      document.getElementById("playAgain").addEventListener("click", resetGame);
+
+      resetGame();
+    })();
+  </script>
+</body>
+</html>
